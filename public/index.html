@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Franchise Analysis • TV Dashboard</title>
+  <link rel="stylesheet" href="tv.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-3d"></script>
+  <script src="app.js"></script>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="tv-frame">
+      <div class="header">
+        <div class="logo">F</div>
+        <div class="title">Franchise Analysis</div>
+        <div class="badge" id="rotateBadge" title="Auto-rotate on/off">Auto-rotate OFF</div>
+        <div class="clock" aria-live="polite"></div>
+      </div>
+
+      <div class="slides-container">
+        <div class="slides" id="slides">
+          <!-- Slide 1: Category Performance -->
+          <!-- <section class="slide active" id="slide1" aria-label="Purchase Category Performance">
+            <div class="grid row-2">
+              <div class="card center">
+                <div class="section-title">Purchase Category Wise Franchise Performance • YTD</div>
+                <canvas id="catChart" height="140"></canvas>
+              </div>
+              <div class="grid">
+                <div class="card kpis">
+                  <div class="kpi kpi--blue"><h4>Total YTD</h4><strong id="kpi-total">₹3.2M</strong></div>
+                  <div class="kpi kpi--green"><h4>Growth vs LY</h4><strong id="kpi-growth">+18.5%</strong></div>
+                  <div class="kpi kpi--orange"><h4>Top Category</h4><strong id="kpi-topcat">Food & Bev</strong></div>
+                </div>
+                <div class="card">
+                  <table class="table" aria-label="Category Table">
+                    <thead><tr><th>Franchise Category</th><th class="num">YTD Last Year</th><th class="num">YTD Current Year</th><th class="num">Growth %</th></tr></thead>
+                    <tbody id="tbl-category">
+                      <tr><td>Electronics</td><td class="num">₹550K</td><td class="num">₹650K</td><td class="num kpi--green">+18.2%</td></tr>
+                      <tr><td>Home Goods</td><td class="num">₹490K</td><td class="num">₹590K</td><td class="num kpi--green">+20.4%</td></tr>
+                      <tr><td>Apparel</td><td class="num">₹700K</td><td class="num">₹800K</td><td class="num kpi--green">+14.3%</td></tr>
+                      <tr><td>Food & Beverage</td><td class="num">₹710K</td><td class="num">₹810K</td><td class="num kpi--green">+14.1%</td></tr>
+                      <tr><td>Services</td><td class="num">₹460K</td><td class="num">₹560K</td><td class="num kpi--green">+21.7%</td></tr>
+                      <tr><td>Automotive</td><td class="num">₹450K</td><td class="num">₹550K</td><td class="num kpi--green">+22.2%</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section> -->
+
+
+          <section class="slide active" id="slide1" aria-label="Purchase Category Performance">
+  <style>
+    :root{
+      --bg:#0f172a; --card:#111827; --ink:#e5e7eb;
+      --muted:#94a3b8; --blue:#0ea5e9; --green:#16a34a; --orange:#f97316;
+      --radius:16px;
+    }
+    .slide{
+      color:var(--ink);
+      background:var(--bg);
+      padding:clamp(12px,2vw,24px);
+      box-sizing:border-box;
+    }
+    .grid{ display:grid; gap:clamp(12px,1.5vw,16px); }
+    /* Top level: chart card + right column */
+    .grid.row-2{
+      grid-template-columns: minmax(0,1.65fr) minmax(0,1fr);
+      align-items:stretch;
+    }
+    /* Stack on tablets/phones */
+    @media (max-width: 1024px){
+      .grid.row-2{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:var(--radius);
+      padding:clamp(12px,1.5vw,16px);
+      box-shadow:0 4px 18px rgba(0,0,0,.25);
+      min-width: 0; /* allow shrinking inside grid */
+      overflow: hidden;
+    }
+    .card.center{ display:flex; flex-direction:column; }
+    .section-title{
+      font-weight:700;
+      font-size:clamp(14px,1.4vw,18px);
+      color:var(--ink);
+      margin-bottom:8px;
+      white-space:normal;
+    }
+
+    /* Chart container: keeps aspect ratio and prevents cropping */
+    .chart-wrap{
+      position:relative;
+      width:100%;
+      aspect-ratio: 16 / 9; /* responsive height, adjust if needed */
+      /* fallback if aspect-ratio unsupported */
+      min-height: 240px;
+      max-height: 420px;
+    }
+    .chart-wrap > canvas{
+      position:absolute; inset:0; width:100% !important; height:100% !important;
+    }
+
+    /* Right side grid (KPIs + table) */
+    .grid.two-rows{
+      grid-template-columns: 1fr;
+      grid-template-rows: auto minmax(0, 1fr); /* KPIs auto-size, table takes rest */
+    }
+    .grid.two-rows > .card:last-child {
+      display: flex;
+      flex-direction: column;
+    }
+    .table-wrap{
+      flex-grow: 1; /* Fill available space in the card */
+      overflow:auto; /* enables vertical and horizontal scroll when needed */
+      max-height: 1000px; /* Add this */
+    }
+
+    .kpis{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; }
+    .kpi{
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:12px;
+      padding:12px;
+    }
+    .kpi h4{
+      margin:0 0 6px 0; font-weight:600; color:var(--muted);
+      font-size:clamp(12px,1.2vw,14px);
+    }
+    .kpi strong{
+      font-size:clamp(16px,2.2vw,22px);
+      font-weight:800; letter-spacing:.2px;
+      display:block; line-height:1.2;
+    }
+    .kpi--blue strong{ color:var(--blue); }
+    .kpi--green strong{ color:var(--green); }
+    .kpi--orange strong{ color:var(--orange); }
+
+    /* Table: never clipped, scrolls horizontally on small screens */
+    .table{
+      width:100%;
+      border-collapse:separate; border-spacing:0;
+      min-width: auto; /* prevents squashing columns on phones */
+      font-size:clamp(12px,1.2vw,14px);
+    }
+    .table th, .table td{
+      text-align:left;
+      padding:10px 12px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      white-space:nowrap; /* keep numbers intact */
+    }
+    .table thead th{
+      position:sticky; top:0;
+      background:rgba(17,24,39,.95);
+      z-index:1;
+      font-weight:700; color:var(--muted);
+    }
+    .table .num{ text-align:right; }
+    .table .kpi--green{ color:var(--green); }
+    .table tr:last-child td{ border-bottom:none; }
+
+    /* Small phones: tighter padding */
+    @media (max-width:480px){
+      .card{ padding:12px; }
+      .table th, .table td{ padding:8px 10px; }
+    }
+  </style>
+
+  <div class="grid row-2">
+    <!-- Left: Chart -->
+    <div class="card center">
+      <div class="section-title">Purchase Category Wise Franchise Performance • YTD</div>
+      <div class="chart-wrap">
+        <canvas id="catChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Right: KPIs + Table -->
+    <div class="grid two-rows">
+      <div class="card kpis">
+        <div class="kpi kpi--blue"><h4>Total YTD</h4><strong id="kpi-total">₹3.2M</strong></div>
+        <div class="kpi kpi--green"><h4>Growth vs LY</h4><strong id="kpi-growth">+18.5%</strong></div>
+        <div class="kpi kpi--orange"><h4>Top Category</h4><strong id="kpi-topcat">Food & Bev</strong></div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap" role="region" aria-label="Category Table horizontal scroll">
+          <table class="table" aria-label="Category Table">
+            <thead>
+              <tr>
+                <th>Franchise Category</th>
+                <th class="num">YTD Last Year</th>
+                <th class="num">YTD Current Year</th>
+                <th class="num">Growth %</th>
+              </tr>
+            </thead>
+            <tbody id="tbl-category">
+              <tr><td>Electronics</td><td class="num">₹550K</td><td class="num">₹650K</td><td class="num kpi--green">+18.2%</td></tr>
+              <tr><td>Home Goods</td><td class="num">₹490K</td><td class="num">₹590K</td><td class="num kpi--green">+20.4%</td></tr>
+              <tr><td>Apparel</td><td class="num">₹700K</td><td class="num">₹800K</td><td class="num kpi--green">+14.3%</td></tr>
+              <tr><td>Food & Beverage</td><td class="num">₹710K</td><td class="num">₹810K</td><td class="num kpi--green">+14.1%</td></tr>
+              <tr><td>Services</td><td class="num">₹460K</td><td class="num">₹560K</td><td class="num kpi--green">+21.7%</td></tr>
+              <tr><td>Automotive</td><td class="num">₹450K</td><td class="num">₹550K</td><td class="num kpi--green">+22.2%</td></tr>
+              <tr><td>Health & Wellness</td><td class="num">₹320K</td><td class="num">₹400K</td><td class="num kpi--green">+25.0%</td></tr>
+              <tr><td>Entertainment</td><td class="num">₹280K</td><td class="num">₹350K</td><td class="num kpi--green">+25.0%</td></tr>
+              <tr><td>Education</td><td class="num">₹210K</td><td class="num">₹280K</td><td class="num kpi--green">+33.3%</td></tr>
+              <tr><td>Travel</td><td class="num">₹180K</td><td class="num">₹250K</td><td class="num kpi--green">+38.9%</td></tr>
+              <tr><td>Pet Supplies</td><td class="num">₹150K</td><td class="num">₹200K</td><td class="num kpi--green">+33.3%</td></tr>
+              <tr><td>Jewelry</td><td class="num">₹120K</td><td class="num">₹160K</td><td class="num kpi--green">+33.3%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+          <!-- Slide 2: State-wise Franchise -->
+          <section class="slide" id="slide2" aria-label="State wise Franchise Count">
+            <div class="grid row-2">
+              <div class="card center">
+                <div class="section-title">State Wise Franchise Count</div>
+                <canvas id="stateChart" height="120"></canvas>
+              </div>
+              <div class="card">
+                <table class="table" aria-label="State Table">
+                  <thead><tr><th>Sr.</th><th>State</th><th class="num">Active</th><th class="num">Inactive</th><th class="num">Total</th></tr></thead>
+                  <tbody id="tbl-states">
+                    <tr><td>1</td><td>California</td><td class="num">125</td><td class="num">15</td><td class="num">140</td></tr>
+                    <tr><td>2</td><td>Texas</td><td class="num">98</td><td class="num">12</td><td class="num">110</td></tr>
+                    <tr><td>3</td><td>Florida</td><td class="num">75</td><td class="num">10</td><td class="num">85</td></tr>
+                    <tr><td>4</td><td>New York</td><td class="num">68</td><td class="num">8</td><td class="num">76</td></tr>
+                    <tr><td>5</td><td>Illinois</td><td class="num">52</td><td class="num">6</td><td class="num">58</td></tr>
+                    <tr><td>6</td><td>Others</td><td class="num">95</td><td class="num">15</td><td class="num">110</td></tr>
+                  </tbody>
+                </table>
+                <div class="kpi kpi--blue" style="margin-top:18px;"><h4>States Overview</h4><strong id="stateKpi">579 Total</strong></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Slide 3: New Franchise Business -->
+          <section class="slide" id="slide3" aria-label="New Franchise Business">
+            <div class="grid row-2">
+              <div class="card center">
+                <div class="section-title">New Franchise Registrations Comparison</div>
+                <canvas id="frRegChart" height="140"></canvas>
+              </div>
+              <div class="card">
+                <table class="table" aria-label="New Franchise Summary">
+                  <thead><tr><th>Metric</th><th class="num">Value</th></tr></thead>
+                  <tbody id="tbl-newfr">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Slide 4: Team Punch -->
+          <section class="slide" id="slide4" aria-label="Team Punch">
+            <div class="grid row-2">
+              <div class="card counter">
+                <div class="count"><h3>In Process</h3><strong id="tp-inproc">128</strong></div>
+                <div class="count"><h3>Started</h3><strong id="tp-started">95</strong></div>
+                <div class="count"><h3>Transfer to FTD</h3><strong id="tp-ftd">62</strong></div>
+              </div>
+              <div class="card">
+                <table class="table" aria-label="Team Punch Table">
+                  <thead><tr><th>Status</th><th class="num">Count</th></tr></thead>
+                  <tbody id="tbl-team">
+                    <tr><td>In Process</td><td class="num">128</td></tr>
+                    <tr><td>Started</td><td class="num">95</td></tr>
+                    <tr><td>Transfer to FTD</td><td class="num">62</td></tr>
+                    <tr><td>Completed</td><td class="num">48</td></tr>
+                    <tr><td>On Hold</td><td class="num">22</td></tr>
+                    <tr><td>Cancelled</td><td class="num">5</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Slide 5: New Franchise YTD Performance -->
+          <section class="slide" id="slide5" aria-label="New Franchise YTD Performance">
+            <div class="grid">
+              <div class="card">
+                <div class="section-title">New Franchise YTD Performance</div>
+                <table class="table" aria-label="New Franchise YTD Performance Table">
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th class="num">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbl-new-ytd">
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Slide 6: Source Wise Revenue Report -->
+          <section class="slide" id="slide6" aria-label="Source Wise Revenue Report">
+            <div class="card">
+              <div class="section-title">Source Wise Revenue Report</div>
+              <div class="table-wrap">
+                <table class="table" aria-label="Source Wise Revenue Report Table">
+                  <thead>
+                    <tr>
+                      <th>Sale Source</th>
+                      <th class="num">MTD</th>
+                      <th class="num">YTD</th>
+                      <th class="num">Last Year YTD</th>
+                      <th class="num">Growth / De-Growth %</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbl-source-revenue">
+                    <!-- Data will be populated here by app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Slide 7: Warehouse Stock Expiry Report -->
+          <section class="slide" id="slide7" aria-label="Warehouse Stock Expiry Report">
+            <div class="card">
+              <div class="section-title">Warehouse Stock Expiry Report</div>
+              <div class="table-wrap">
+                <table class="table warehouse-table" aria-label="Warehouse Stock Expiry Report Table">
+                  <thead>
+                    <tr>
+                      <th>Warehouse</th>
+                      <th class="num">Present Product Count</th>
+                      <th class="num">Present Stock Value</th>
+                      <th class="num">Expiry > 90 Product Count</th>
+                      <th class="num">Expiry > 90 Value</th>
+                      <th class="num">Expiry > 60 Product Count</th>
+                      <th class="num">Expiry > 60 Value</th>
+                      <th class="num">Expiry > 30 Product Count</th>
+                      <th class="num">Expiry > 30 Value</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbl-warehouse">
+                    <!-- Data will be populated here by app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Slide 8: Stock Dispatch Report -->
+          <section class="slide" id="slide8" aria-label="Stock Dispatch Report">
+            <div class="card">
+              <div class="section-title">Stock Dispatch Report</div>
+              <div class="centered-kpis">
+                <div class="kpi kpi--blue"><h4>Dispatch Count</h4><strong id="dispatch-count">0</strong></div>
+                <div class="kpi kpi--green"><h4>Stock Amount</h4><strong id="stock-amount">0</strong></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Slide 9: Medicine Category Wise Sale -->
+          <section class="slide" id="slide9" aria-label="Medicine Category Wise Sale">
+            <div class="grid" style="grid-template-columns: 1fr 1.5fr 1fr;">
+              <div class="card">
+                <div class="table-wrap medicine-table">
+                    <table class="table" aria-label="Medicine Category Wise Sale Table">
+                    <thead>
+                        <tr>
+                        <th>Category Name</th>
+                        <th class="num">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbl-medicine-category-1">
+                        <!-- Data will be populated here by app.js -->
+                    </tbody>
+                    </table>
+                </div>
+              </div>
+              <div class="card center">
+                <div class="section-title">Medicine Category Wise Sale</div>
+                <canvas id="medicineCatChart"></canvas>
+              </div>
+              <div class="card">
+                <div class="table-wrap medicine-table">
+                    <table class="table" aria-label="Medicine Category Wise Sale Table">
+                    <thead>
+                        <tr>
+                        <th>Category Name</th>
+                        <th class="num">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbl-medicine-category-2">
+                        <!-- Data will be populated here by app.js -->
+                    </tbody>
+                    </table>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Slide 10: Daily Purchase & YOY Comparison -->
+          <section class="slide" id="slide10" aria-label="Daily Purchase Report & YOY Comparison">
+            <div class="grid" style="grid-template-columns: 1fr 1fr;">
+              <div class="card">
+                <div class="section-title">Daily Purchase Report</div>
+                <div class="centered-kpis" style="flex-direction: column; gap: 20px;">
+                  <div class="kpi kpi--blue"><h4>FTD Amount</h4><strong id="ftd-amount">0</strong></div>
+                  <div class="kpi kpi--green"><h4>MTD Amount</h4><strong id="mtd-amount">0</strong></div>
+                  <div class="kpi kpi--orange"><h4>YTD Amount</h4><strong id="ytd-amount">0</strong></div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="section-title">YOY Purchase Comparison</div>
+                <div class="centered-kpis" style="flex-direction: column; gap: 20px;">
+                  <div class="kpi kpi--blue"><h4>This Year MTD</h4><strong id="this-year-mtd">0</strong></div>
+                  <div class="kpi kpi--green"><h4>Last Year MTD</h4><strong id="last-year-mtd">0</strong></div>
+                  <div class="kpi kpi--orange"><h4>This Year YTD</h4><strong id="this-year-ytd">0</strong></div>
+                  <div class="kpi kpi--red"><h4>Last Year YTD</h4><strong id="last-year-ytd">0</strong></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Slide 11: Purchase PO Reports -->
+          <section class="slide" id="slide11" aria-label="Purchase PO Reports">
+            <div class="card" style="display: flex; flex-direction: column;">
+              <div class="section-title">Purchase PO Reports</div>
+              <div class="kpis" style="margin-bottom: 15px;">
+                <div class="kpi kpi--blue"><h4>Total Companies</h4><strong id="po-total-companies">0</strong></div>
+                <div class="kpi kpi--green"><h4>Total POs</h4><strong id="po-total-pos">0</strong></div>
+                <div class="kpi kpi--orange"><h4>Total Amount</h4><strong id="po-total-amount">0</strong></div>
+              </div>
+              <div class="table-wrap" style="flex-grow: 1;">
+                <table class="table" aria-label="Purchase PO Reports Table">
+                  <thead>
+                    <tr>
+                      <th>Company Name</th>
+                      <th class="num">PO Generated Count</th>
+                      <th class="num">PO Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbl-po-report">
+                    <!-- Data will be populated here by app.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        
+        </div>
+        
+        <!-- Slide indicators -->
+        <div class="slide-indicators">
+          <div class="indicator active" data-slide="0"></div>
+          <div class="indicator" data-slide="1"></div>
+          <div class="indicator" data-slide="2"></div>
+          <div class="indicator" data-slide="3"></div>
+          <div class="indicator" data-slide="4"></div>
+          <div class="indicator" data-slide="5"></div>
+          <div class="indicator" data-slide="6"></div>
+          <div class="indicator" data-slide="7"></div>
+          <div class="indicator" data-slide="8"></div>
+          <div class="indicator" data-slide="9"></div>
+          <div class="indicator" data-slide="10"></div>
+          <div class="indicator" data-slide="11"></div>
+        </div>
+        
+        <!-- Progress bar -->
+        <div class="progress">
+          <div class="progress-bar"></div>
+        </div>
+      </div>
+
+      <div class="ticker" aria-live="polite"><i></i><span id="tickerText">Loading…</span></div>
+    </div>
+  </div>
+
+  <!-- Keyboard Help -->
+  <div class="help">
+    <b>Keyboard:</b> ←/→ switch • Space pause • R reset • 1-9 go to slide
+  </div>
+</body>
+</html>

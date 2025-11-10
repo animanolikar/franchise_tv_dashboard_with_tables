@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Warehouse Reports • TV Dashboard</title>
+  <link rel="stylesheet" href="tv.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-3d"></script>
+  <script src="warehouse.js"></script>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="tv-frame">
+      <div class="header">
+        <div class="logo">W</div>
+        <div class="title">Warehouse Reports</div>
+        <div class="badge" id="rotateBadge" title="Auto-rotate on/off">Auto-rotate OFF</div>
+        <div class="clock" aria-live="polite"></div>
+      </div>
+
+      <div class="slides-container">
+        <div class="slides" id="slides">
+          <!-- Slide 1: Warehouse Stock Expiry Report -->
+          <section class="slide active" id="slide1" aria-label="Warehouse Stock Expiry Report">
+            <div class="card">
+              <div class="section-title">Warehouse Stock Expiry Report</div>
+              <div class="table-wrap">
+                <table class="table" aria-label="Warehouse Stock Expiry Report Table">
+                  <thead>
+                    <tr>
+                      <th>Warehouse</th>
+                      <th class="num">Present Product Count</th>
+                      <th class="num">Present Stock Value</th>
+                      <th class="num">Expiry > 90 Product Count</th>
+                      <th class="num">Expiry > 90 Value</th>
+                      <th class="num">Expiry > 60 Product Count</th>
+                      <th class="num">Expiry > 60 Value</th>
+                      <th class="num">Expiry > 30 Product Count</th>
+                      <th class="num">Expiry > 30 Value</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tbl-warehouse">
+                    <!-- Data will be populated here by warehouse.js -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+        
+        <!-- Slide indicators -->
+        <div class="slide-indicators">
+          <div class="indicator active" data-slide="0"></div>
+        </div>
+        
+        <!-- Progress bar -->
+        <div class="progress">
+          <div class="progress-bar"></div>
+        </div>
+      </div>
+
+      <div class="ticker" aria-live="polite"><i></i><span id="tickerText">Loading…</span></div>
+    </div>
+  </div>
+
+  <!-- Keyboard Help -->
+  <div class="help">
+    <b>Keyboard:</b> ←/→ switch • Space pause • R reset • 1-6 go to slide
+  </div>
+</body>
+</html>
