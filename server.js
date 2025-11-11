@@ -20,7 +20,7 @@ const data = {
   ytdPerformance: { totalRegistered: 412, startedYTD: 306 },
   purchaseExcludingWS: { mtd: 1680000, ytd: 45200000 },
   highlights: [
-    "No manual refresh needed — it’s all auto-magic every 30 seconds 🚀",
+    "No manual refresh needed — it’s all auto-magic every hour 🚀",
     
   ]
 };
