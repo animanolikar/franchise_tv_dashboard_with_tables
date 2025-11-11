@@ -30,8 +30,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function updateCategoryPerformance() {
+    // Set loading state for elements related to this update
+    document.getElementById('kpi-total').textContent = 'Loading...';
+    document.getElementById('kpi-growth').textContent = 'Loading...';
+    document.getElementById('kpi-topcat').textContent = 'Loading...';
+    const tableBody = document.getElementById('tbl-category');
+    tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Loading...</td></tr>';
+
     const data = await fetchData('https://prod.wmsgmpl.com:3010/api/v1/franchise/purchaseCategorywiseFrPerformance');
-    if (!data || !data.success || !data.data || data.data.length === 0) return;
+    if (!data || !data.success || !data.data || data.data.length === 0) {
+      document.getElementById('kpi-total').textContent = 'Error';
+      document.getElementById('kpi-growth').textContent = 'Error';
+      document.getElementById('kpi-topcat').textContent = 'Error';
+      tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Error loading data.</td></tr>';
+      return;
+    }
 
     const performanceData = data.data;
 
@@ -50,7 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('kpi-growth').textContent = `${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`;
     document.getElementById('kpi-topcat').textContent = topCategory;
 
-    const tableBody = document.getElementById('tbl-category');
     tableBody.innerHTML = performanceData.map(item => {
       const itemGrowth = item.YTD_Last_Year > 0 ? ((item.YTD_Current_Year - item.YTD_Last_Year) / item.YTD_Last_Year) * 100 : 0;
       const growthClass = itemGrowth >= 0 ? 'kpi--green' : 'kpi--red';
@@ -72,8 +84,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function updateStateFranchise() {
+    // Set loading state for elements related to this update
+    document.getElementById('tbl-states').innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading...</td></tr>';
+    document.getElementById('stateKpi').textContent = 'Loading...';
+    
     const data = await fetchData('/api/state-franchise');
-    if (!data) return;
+    if (!data) {
+      document.getElementById('tbl-states').innerHTML = '<tr><td colspan="5" style="text-align:center;">Error loading data.</td></tr>';
+      document.getElementById('stateKpi').textContent = 'Error';
+      return;
+    }
 
     const tableBody = document.getElementById('tbl-states');
     let totalFranchises = 0;
@@ -100,8 +120,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function updateFranchiseStats() {
+    // Set loading state for elements related to this update
+    document.getElementById('tbl-newfr').innerHTML = '<tr><td>Loading...</td><td class="num">Loading...</td></tr>';
+    
     const data = await fetchData('/api/fr-registration-stats');
-    if (!data) return;
+    if (!data) {
+      document.getElementById('tbl-newfr').innerHTML = '<tr><td>Error loading data.</td><td class="num">Error</td></tr>';
+      return;
+    }
 
     // Update "New Franchise Business" (Slide 3)
     const tableBody = document.getElementById('tbl-newfr');
@@ -134,19 +160,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Update "Excluding W.S Purchase Amount" (Slide 6)
-    document.getElementById('mtdWS').textContent = formatCurrency(perfData.Excl_WS_Purchase_MTD);
-    document.getElementById('ytdWS').textContent = formatCurrency(perfData.Excl_WS_Purchase_YTD);
+    // These elements might not exist in the HTML, so check for their existence
+    const mtdWSel = document.getElementById('mtdWS');
+    if (mtdWSel) mtdWSel.textContent = formatCurrency(perfData.Excl_WS_Purchase_MTD);
+    const ytdWSel = document.getElementById('ytdWS');
+    if (ytdWSel) ytdWSel.textContent = formatCurrency(perfData.Excl_WS_Purchase_YTD);
   }
 
   async function updateTeamPunch() {
+    // Set loading state for elements related to this update
+    document.getElementById('tp-inproc').textContent = 'Loading...';
+    document.getElementById('tp-started').textContent = 'Loading...';
+    document.getElementById('tp-ftd').textContent = 'Loading...';
+    const tableBody = document.getElementById('tbl-team');
+    tableBody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Loading...</td></tr>';
+    
     const data = await fetchData('/api/team-punch');
-    if (!data) return;
+    if (!data) {
+      document.getElementById('tp-inproc').textContent = 'Error';
+      document.getElementById('tp-started').textContent = 'Error';
+      document.getElementById('tp-ftd').textContent = 'Error';
+      tableBody.innerHTML = '<tr><td colspan="2" style="text-align:center;">Error loading data.</td></tr>';
+      return;
+    }
 
     document.getElementById('tp-inproc').textContent = formatNumber(data.inProcess);
     document.getElementById('tp-started').textContent = formatNumber(data.started);
     document.getElementById('tp-ftd').textContent = formatNumber(data.transferToFTD);
     
-    const tableBody = document.getElementById('tbl-team');
     tableBody.innerHTML = Object.entries(data).map(([key, value]) => `
       <tr>
         <td>${key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</td>
@@ -155,17 +196,101 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
+  async function getOnlineSalesMetrics() {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-indexed
+
+    // Determine fiscal year start (April 1st)
+    const fiscalYearStartMonth = 3; // April is 3 (0-indexed)
+
+    let currentFiscalYear = currentYear;
+    if (currentMonth < fiscalYearStartMonth) {
+      currentFiscalYear--; // If before April, fiscal year started last calendar year
+    }
+
+    const currentFiscalYearStartDate = new Date(currentFiscalYear, fiscalYearStartMonth, 1);
+    const lastFiscalYearStartDate = new Date(currentFiscalYear - 1, fiscalYearStartMonth, 1);
+
+    // Format dates for API
+    const formatDate = (date) => date.toISOString().split('T')[0];
+
+    // Current YTD: April 1st of current fiscal year to today
+    const currentYTD_fromDate = formatDate(currentFiscalYearStartDate);
+    const currentYTD_toDate = formatDate(today);
+
+    // Last YTD: April 1st of previous fiscal year to equivalent date in previous year
+    const lastYTD_toDate = new Date(today);
+    lastYTD_toDate.setFullYear(today.getFullYear() - 1);
+    const lastYTD_fromDate = formatDate(lastFiscalYearStartDate);
+    const lastYTD_toDateFormatted = formatDate(lastYTD_toDate);
+
+    // MTD: 1st of current month to today
+    const currentMonthStartDate = new Date(currentYear, currentMonth, 1);
+    const MTD_fromDate = formatDate(currentMonthStartDate);
+    const MTD_toDate = formatDate(today);
+
+    const onlineSalesEndpoint = 'https://genericartsales.kredpool.in/online-sales';
+
+    let mtdTotal = 0;
+    let ytdTotal = 0;
+    let lastYtdTotal = 0;
+
+    try {
+      // Fetch data for current YTD
+      const currentYTD_url = `${onlineSalesEndpoint}?fromDate=${currentYTD_fromDate}&toDate=${currentYTD_toDate}`;
+      const currentYTD_data = await fetchData(currentYTD_url);
+      if (currentYTD_data && currentYTD_data.status === 1 && currentYTD_data.data) {
+        ytdTotal = currentYTD_data.data.reduce((sum, item) => sum + parseFloat(item.total_paid_amount || 0), 0);
+      }
+
+      // Fetch data for last YTD
+      const lastYTD_url = `${onlineSalesEndpoint}?fromDate=${lastYTD_fromDate}&toDate=${lastYTD_toDateFormatted}`;
+      const lastYTD_data = await fetchData(lastYTD_url);
+      if (lastYTD_data && lastYTD_data.status === 1 && lastYTD_data.data) {
+        lastYtdTotal = lastYTD_data.data.reduce((sum, item) => sum + parseFloat(item.total_paid_amount || 0), 0);
+      }
+
+      // Fetch data for MTD
+      const MTD_url = `${onlineSalesEndpoint}?fromDate=${MTD_fromDate}&toDate=${MTD_toDate}`;
+      const MTD_data = await fetchData(MTD_url);
+      if (MTD_data && MTD_data.status === 1 && MTD_data.data) {
+        mtdTotal = MTD_data.data.reduce((sum, item) => sum + parseFloat(item.total_paid_amount || 0), 0);
+      }
+
+    } catch (error) {
+      console.error('Error fetching online sales data:', error);
+    }
+
+    return {
+      Sale_Source: 'Online Sales',
+      MTD_Total_Amount: mtdTotal,
+      YTD_Total_Amount: ytdTotal,
+      Last_YTD_Total_Amount: lastYtdTotal
+    };
+  }
+
   async function updateSourceRevenue() {
     const tableBody = document.getElementById('tbl-source-revenue');
     if (!tableBody) return;
 
+    // Set loading state
+    tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Loading...</td></tr>';
+
     try {
-      const response = await fetch('https://prod.wmsgmpl.com:3010/api/v1/account_report/sourceWiseRevenueReport');
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      const [sourceRevenueResponse, onlineSalesMetrics] = await Promise.all([
+        fetch('https://prod.wmsgmpl.com:3010/api/v1/account_report/sourceWiseRevenueReport'),
+        getOnlineSalesMetrics()
+      ]);
+
+      if (!sourceRevenueResponse.ok) {
+        throw new Error(`HTTP error! status: ${sourceRevenueResponse.status}`);
       }
-      const result = await response.json();
-      const data = result.data && result.data[1] ? result.data[1] : [];
+      const sourceRevenueResult = await sourceRevenueResponse.json();
+      let data = sourceRevenueResult.data && sourceRevenueResult.data[1] ? sourceRevenueResult.data[1] : [];
+
+      // Add online sales data
+      data.push(onlineSalesMetrics);
 
       if (data && data.length > 0) {
         let tableHTML = '';
@@ -195,6 +320,9 @@ document.addEventListener('DOMContentLoaded', () => {
   async function updateWarehouseReport() {
     const warehouseTable = document.getElementById('tbl-warehouse');
     if (!warehouseTable) return;
+
+    // Set loading state
+    warehouseTable.innerHTML = '<tr><td colspan="9" style="text-align:center;">Loading...</td></tr>';
 
     try {
       const response = await fetch('https://prod.wmsgmpl.com:3010/api/v1/account_report/whStockExpiryReport');
@@ -368,8 +496,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function updatePurchasePOReport() {
+    // Set loading state for elements related to this update
+    document.getElementById('po-total-companies').textContent = 'Loading...';
+    document.getElementById('po-total-pos').textContent = 'Loading...';
+    document.getElementById('po-total-amount').textContent = 'Loading...';
+    const tableBody = document.getElementById('tbl-po-report');
+    tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Loading...</td></tr>';
+
     const data = await fetchData('https://prod.wmsgmpl.com:3010/api/v1/account_report/purchasePOReport');
-    if (!data || !data.success || !data.data) return;
+    if (!data || !data.success || !data.data) {
+      document.getElementById('po-total-companies').textContent = 'Error';
+      document.getElementById('po-total-pos').textContent = 'Error';
+      document.getElementById('po-total-amount').textContent = 'Error';
+      tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Error loading data.</td></tr>';
+      return;
+    }
 
     const reportData = data.data;
 
@@ -381,7 +522,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('po-total-pos').textContent = formatNumber(totalPOs);
     document.getElementById('po-total-amount').textContent = formatCurrency(totalAmount);
 
-    const tableBody = document.getElementById('tbl-po-report');
     tableBody.innerHTML = reportData.map(item => `
       <tr>
         <td>${item.Company_Name}</td>
@@ -392,8 +532,20 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function updateYoyPurchaseComparison() {
+    // Set loading state for elements related to this update
+    document.getElementById('this-year-mtd').textContent = 'Loading...';
+    document.getElementById('last-year-mtd').textContent = 'Loading...';
+    document.getElementById('this-year-ytd').textContent = 'Loading...';
+    document.getElementById('last-year-ytd').textContent = 'Loading...';
+
     const data = await fetchData('https://prod.wmsgmpl.com:3010/api/v1/account_report/yoySalesComparison');
-    if (!data || !data.success || !data.data) return;
+    if (!data || !data.success || !data.data) {
+      document.getElementById('this-year-mtd').textContent = 'Error';
+      document.getElementById('last-year-mtd').textContent = 'Error';
+      document.getElementById('this-year-ytd').textContent = 'Error';
+      document.getElementById('last-year-ytd').textContent = 'Error';
+      return;
+    }
 
     const reportData = data.data[0];
 
@@ -404,8 +556,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function updateDailyPurchaseReport() {
+    // Set loading state for elements related to this update
+    document.getElementById('ftd-amount').textContent = 'Loading...';
+    document.getElementById('mtd-amount').textContent = 'Loading...';
+    document.getElementById('ytd-amount').textContent = 'Loading...';
+
     const data = await fetchData('https://prod.wmsgmpl.com:3010/api/v1/account_report/dailySalesReport');
-    if (!data || !data.success || !data.data) return;
+    if (!data || !data.success || !data.data) {
+      document.getElementById('ftd-amount').textContent = 'Error';
+      document.getElementById('mtd-amount').textContent = 'Error';
+      document.getElementById('ytd-amount').textContent = 'Error';
+      return;
+    }
 
     const reportData = data.data[0];
 
@@ -415,8 +577,16 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function updateStockDispatchReport() {
+    // Set loading state for elements related to this update
+    document.getElementById('dispatch-count').textContent = 'Loading...';
+    document.getElementById('stock-amount').textContent = 'Loading...';
+
     const data = await fetchData('https://prod.wmsgmpl.com:3010/api/v1/account_report/wlStockDispatchReport');
-    if (!data || !data.success || !data.data || data.data.length === 0) return;
+    if (!data || !data.success || !data.data || data.data.length === 0) {
+      document.getElementById('dispatch-count').textContent = 'Error';
+      document.getElementById('stock-amount').textContent = 'Error';
+      return;
+    }
 
     const reportData = data.data[0];
 
@@ -489,6 +659,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initializeCharts();
   setupSlideNavigation();
   fetchAllData();
-  setInterval(fetchAllData, 30000); // Refresh data every 30 seconds
+  const ONE_AND_HALF_HOUR_MS = 90 * 60 * 1000; // 5,400,000 ms
+
+  setInterval(fetchAllData, ONE_AND_HALF_HOUR_MS); // Refresh data every 1. 5 H
   autoScrollTable();
 });

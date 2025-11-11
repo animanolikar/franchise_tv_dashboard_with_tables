@@ -71,7 +71,8 @@
       width: 42px;
       height: 42px;
       border-radius: 12px;
-      background: conic-gradient(from 180deg at 50% 50%, var(--primary), var(--accent), var(--warning), var(--primary));
+      /* background: conic-gradient(from 180deg at 50% 50%, var(--primary), var(--accent), var(--warning), var(--primary)); */
+           background: black;
       box-shadow: 0 0 30px rgba(14, 165, 233, .35);
       display: flex;
       align-items: center;
