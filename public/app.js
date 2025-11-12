@@ -493,6 +493,36 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDailyPurchaseReport();
     updateYoyPurchaseComparison();
     updatePurchasePOReport();
+    updateOdcStats();
+  }
+
+  async function updateOdcStats() {
+    const tableHead = document.getElementById('tbl-odc-stats-head');
+    const tableBody = document.getElementById('tbl-odc-stats-body');
+
+    // Set loading state
+    tableHead.innerHTML = '';
+    tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Loading...</td></tr>';
+
+    const data = await fetchData('https://posprod.posgmpl.com:3006/pos/api/v1/ims_reports/odc_stats/GODC0001');
+    
+    if (!data || data.status !== 1 || !data.result || data.result.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="10" style="text-align:center;">Error loading data.</td></tr>';
+      return;
+    }
+
+    const odcData = data.result;
+    const headers = Object.keys(odcData[0]);
+
+    // Populate table headers
+    tableHead.innerHTML = `<tr>${headers.map(h => `<th>${h.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</th>`).join('')}</tr>`;
+
+    // Populate table rows
+    tableBody.innerHTML = odcData.map(row => `
+      <tr>
+        ${headers.map(header => `<td class="num">${typeof row[header] === 'number' ? formatNumber(row[header]) : row[header]}</td>`).join('')}
+      </tr>
+    `).join('');
   }
 
   async function updatePurchasePOReport() {
