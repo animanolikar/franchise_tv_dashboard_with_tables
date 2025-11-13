@@ -494,6 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateYoyPurchaseComparison();
     updatePurchasePOReport();
     updateOdcStats();
+    updateManufacturerBilling();
   }
 
   async function updateOdcStats() {
@@ -655,6 +656,41 @@ document.addEventListener('DOMContentLoaded', () => {
         medicineCatChart.update();
     }
   }
+
+  async function updateManufacturerBilling() {
+    const tableBody = document.getElementById('tbl-manufacturer-billing');
+    if (!tableBody) return;
+
+    tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Loading...</td></tr>';
+
+    try {
+      const result = await fetchData('https://prod.wmsgmpl.com:3010/api/v1/account_report/manufacturerWiseBilling');
+      
+      if (!result || !result.success || !result.data) {
+        tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">Error loading data.</td></tr>';
+        return;
+      }
+
+      let billingData = result.data;
+
+      if (billingData.length > 0) {
+        tableBody.innerHTML = billingData.map(item => `
+          <tr>
+            <td>${item.Manufacturer_Name}</td>
+            <td class="num">${formatCurrency(item.MTD_Amount)}</td>
+            <td class="num">${formatCurrency(item.YTD_Amount)}</td>
+          </tr>
+        `).join('');
+      } else {
+        tableBody.innerHTML = '<tr><td colspan="3" style="text-align:center;">No data available.</td></tr>';
+      }
+    } catch (error) {
+      console.error('Error fetching manufacturer billing data:', error);
+      tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center;">Error loading data: ${error.message}</td></tr>`;
+    }
+  }
+
+
 
   function autoScrollTable() {
     const tableWrap = document.querySelector('.table-wrap');
